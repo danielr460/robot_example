@@ -1,0 +1,35 @@
+<launch>
+
+    <!-- Load joint controller configurations from YAML file to parameter server -->
+    <rosparam command="load"
+              file="$(find robot_example)/config/joints.yaml"
+              ns="example_joint_state_controller" />
+    <rosparam command="load"
+              file="$(find robot_example)/config/front_joint1.yaml"
+              ns="front_joint_1_controller" />
+    <rosparam command="load"
+              file="$(find robot_example)/config/front_joint2.yaml"
+              ns="front_joint_2_controller" />
+    <rosparam command="load"
+              file="$(find robot_example)/config/rear_joint1.yaml"
+              ns="rear_joint_1_controller" />
+    <rosparam command="load"
+              file="$(find robot_example)/config/rear_joint2.yaml"
+              ns="rear_joint_2_controller" />
+
+    <!-- load the controllers -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+                args="example_joint_state_controller
+                      front_joint_1_controller
+                      front_joint_2_controller
+                      rear_joint_1_controller
+                      rear_joint_2_controller"/>
+    <!-- convert joint states to TF transforms for rviz, etc -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+          respawn="false" output="screen">
+        <remap from="/joint_states" to="/robot_example/joint_states" />
+    </node>
+
+    <node name="key_control" pkg="robot_example" type="control.py" output="screen" />
+
+</launch>

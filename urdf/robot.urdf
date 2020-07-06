@@ -114,6 +114,15 @@
             <limit effort="60" velocity="4.18"/>
             <dynamics damping="1" friction="0"/>
         </joint>
+        <transmission name="drive_${nomi}${nomi2}">
+            <type>transmission_interface/SimpleTransmission</type>
+            <actuator name="axis_${nomi}">
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+            <joint name="axis_to_axis_${nomi}${nomi2}">
+	            <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+        </transmission>
     </xacro:macro>
 
     <xacro:macro name="two_wheels" params="nomi y_pos">
@@ -133,6 +142,11 @@
             <origin xyz="0 0 ${wheel_radius+axis_radius*2+base_thickness/2}" rpy="0 0 0"/>
         </xacro:base_box>
     </link>
+    <link name="dummy" />
+    <joint name="dummy_joint" type="fixed">
+        <parent link="dummy"/>
+        <child link="base"/>
+    </joint>
     <xacro:two_wheels nomi="1" y_pos="-1"/>
     <xacro:two_wheels nomi="2" y_pos="1"/>
     <joint name="axis_to_base_1" type="fixed">
@@ -155,4 +169,12 @@
         <child link="axis_base_22"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
+
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+            <robotNamespace>/</robotNamespace>
+            <legacyModeNS>true</legacyModeNS>
+        </plugin>
+    </gazebo>
+
 </robot>
