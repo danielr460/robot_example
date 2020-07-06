@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="platform">
+
+    <xacro:property name="base_background" value="0.5334"/>
+    <xacro:property name="base_width" value="0.3429"/>
+    <xacro:property name="base_thickness" value="0.03"/>
+    <xacro:property name="mass_chasis" value="1.9546"/>
+
+    <xacro:property name="wheel_radius" value="0.075"/>
+    <xacro:property name="wheel_thickness" value="0.025"/>
+    <xacro:property name="axis_radius" value="0.004"/>
+    <xacro:property name="axis_length" value="${base_width+wheel_radius}"/>
+
+    <gazebo reference="base">
+        <material>Gazebo/Orange</material>
+    </gazebo>
+
+    <xacro:macro name="base_box" params="background width high mass *origin">
+        <collision>
+            <geometry>
+                <box size="${background} ${width} ${high}"/>
+            </geometry>
+            <xacro:insert_block name="origin"/>
+        </collision>
+        <inertial>
+            <mass value="${mass}"/>
+            <inertia ixx="${(mass*((high*high)+background*background)/12)}" ixy="0" ixz="0"
+                iyy="${(mass*((width*width)+background*background)/12)}" iyz="0"
+                izz="${(mass*((width*width)+high*high)/12)}"/>
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="cylinder_collision" params="cylinder_radius length mass *origin">
+        <collision>
+            <geometry>
+                <cylinder length="${length}" radius="${cylinder_radius}"/>
+            </geometry>
+            <xacro:insert_block name="origin"/>
+        </collision>
+        <inertial>
+            <mass value="${mass}"/>
+            <inertia ixx="${((mass*(3*cylinder_radius*cylinder_radius)+length*length)/12)}" ixy="0" ixz="0"
+                iyy="${((mass*(3*cylinder_radius*cylinder_radius)+length*length)/12)}" iyz="0"
+                izz="${(mass*cylinder_radius*cylinder_radius)/2}"/>
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="wheel" params="nomi x_pos y_pos">
+        <gazebo reference="wheel_${nomi}">
+            <mu1 value="200.0"/>
+            <mu2 value="100.0"/>
+            <kp value="10000000.0" />
+            <kd value="1.0" />
+            <material>Gazebo/Blue</material>
+        </gazebo>
+        <link name="wheel_${nomi}">
+            <pose>0 0 0 0 -0 0</pose>
+            <visual>
+                <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
+                </geometry>
+                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius}
+                                               ${y_pos*(base_width/2+wheel_radius/4)}
+                                               ${wheel_radius}"/>
+            </visual>
+            <xacro:cylinder_collision cylinder_radius="${wheel_radius}" length="${wheel_thickness}" mass="0.25">
+                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius}
+                                               ${y_pos*(base_width/2+wheel_radius/4)}
+                                               ${wheel_radius}"/>
+            </xacro:cylinder_collision>
+        </link>
+        <gazebo reference="wheel_${nomi}">
+            <mu1 value="200.0"/>
+            <mu2 value="100.0"/>
+            <kp value="10000000.0" />
+            <kd value="1.0" />
+            <material>Gazebo/Black</material>
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:macro name="two_wheels" params="nomi x_pos">
+        <xacro:wheel nomi="${nomi}1" x_pos="${x_pos}" y_pos="1"/>
+        <xacro:wheel nomi="${nomi}2" x_pos="${x_pos}" y_pos="-1"/>
+        <gazebo reference="axis_${nomi}">
+            <material>Gazebo/White</material>
+        </gazebo>
+        <link name="axis_${nomi}">
+            <visual>
+                <geometry>
+                    <cylinder radius="${axis_radius}" length="${axis_length}"/>
+                </geometry>
+                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius} 0 ${wheel_radius}"/>
+            </visual>
+	        <xacro:cylinder_collision cylinder_radius="${axis_radius}" length="${axis_length}" mass="0.08">
+        	    <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius} 0 ${wheel_radius}"/>
+            </xacro:cylinder_collision>
+        </link>
+        <joint name="axis_to_wheel_${nomi}1" type="fixed">
+            <parent link="axis_${nomi}"/>
+            <child link="wheel_${nomi}1"/>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </joint>
+        <joint name="axis_to_wheel_${nomi}2" type="fixed">
+            <parent link="axis_${nomi}"/>
+            <child link="wheel_${nomi}2"/>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </joint>
+    </xacro:macro>
+
+    <link name="base">
+        <visual>
+            <origin xyz="0 0 ${wheel_radius+axis_radius+base_thickness/2}" rpy="0 0 0" />
+            <geometry>
+                <box size="${base_background} ${base_width} ${base_thickness}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+        <xacro:base_box background="${base_background}" width="${base_width}" high="${base_thickness}" mass="${mass_chasis}">
+            <origin xyz="0 0 ${wheel_radius+axis_radius+base_thickness/2}" rpy="0 0 0"/>
+        </xacro:base_box>
+    </link>
+    <xacro:two_wheels nomi="1" x_pos="-1"/>
+    <xacro:two_wheels nomi="2" x_pos="1"/>
+    <joint name="axis_to_base_1" type="fixed">
+        <parent link="base"/>
+        <child link="axis_1"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="axis_to_base_2" type="fixed">
+        <parent link="base"/>
+        <child link="axis_2"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+</robot>
