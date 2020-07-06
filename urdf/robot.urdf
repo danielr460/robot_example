@@ -9,7 +9,7 @@
     <xacro:property name="wheel_radius" value="0.075"/>
     <xacro:property name="wheel_thickness" value="0.025"/>
     <xacro:property name="axis_radius" value="0.004"/>
-    <xacro:property name="axis_length" value="${base_width+wheel_radius}"/>
+    <xacro:property name="axis_length" value="${(base_width+wheel_radius)/2}"/>
 
     <gazebo reference="base">
         <material>Gazebo/Orange</material>
@@ -54,74 +54,105 @@
             <material>Gazebo/Black</material>
         </gazebo>
         <link name="wheel_${nomi}">
-            <pose>0 0 0 0 -0 0</pose>
             <visual>
                 <geometry>
                 <cylinder radius="${wheel_radius}" length="${wheel_thickness}"/>
                 </geometry>
-                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius}
-                                               ${y_pos*(base_width/2+wheel_radius/4)}
-                                               ${wheel_radius}"/>
+                <origin rpy="0 1.57075 0" xyz="${-x_pos*(base_background/2-wheel_radius)} 0 0"/>
             </visual>
             <xacro:cylinder_collision cylinder_radius="${wheel_radius}" length="${wheel_thickness}" mass="0.25">
-                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius}
-                                               ${y_pos*(base_width/2+wheel_radius/4)}
-                                               ${wheel_radius}"/>
+                <origin rpy="0 1.57075 0" xyz="${-x_pos*(base_background/2-wheel_radius)} 0 0"/>
             </xacro:cylinder_collision>
         </link>
     </xacro:macro>
-
-    <xacro:macro name="two_wheels" params="nomi x_pos">
-        <xacro:wheel nomi="${nomi}1" x_pos="${x_pos}" y_pos="1"/>
-        <xacro:wheel nomi="${nomi}2" x_pos="${x_pos}" y_pos="-1"/>
-        <gazebo reference="axis_${nomi}">
+    
+    <xacro:macro name="compound_wheel" params="nomi nomi2 x_pos y_pos">
+        <xacro:wheel nomi="${nomi}${nomi2}" x_pos="${x_pos}" y_pos="1"/>
+        <gazebo reference="axis_${nomi}${nomi2}">
             <material>Gazebo/White</material>
         </gazebo>
-        <link name="axis_${nomi}">
+        <gazebo reference="axis_base_${nomi}${nomi2}">
+            <material>Gazebo/Blue</material>
+        </gazebo>
+        <link name="axis_${nomi}${nomi2}">
             <visual>
                 <geometry>
                     <cylinder radius="${axis_radius}" length="${axis_length}"/>
                 </geometry>
-                <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius} 0 ${wheel_radius}"/>
+                <origin rpy="1.57075 0 1.57075" xyz="${-x_pos*axis_length/2} 0 0"/>
             </visual>
 	        <xacro:cylinder_collision cylinder_radius="${axis_radius}" length="${axis_length}" mass="0.08">
-        	    <origin rpy="1.57075 0 0" xyz="${x_pos*base_background/2-x_pos*wheel_radius} 0 ${wheel_radius}"/>
+        	    <origin rpy="1.57075 0 1.57075" xyz="${-x_pos*axis_length/2} 0 0"/>
             </xacro:cylinder_collision>
         </link>
-        <joint name="axis_to_wheel_${nomi}1" type="fixed">
-            <parent link="axis_${nomi}"/>
-            <child link="wheel_${nomi}1"/>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+        <link name="axis_base_${nomi}${nomi2}">
+            <visual>
+                <geometry>
+                    <cylinder radius="${axis_radius*2}" length="${axis_length/4}"/>
+                </geometry>
+                <origin rpy="1.57075 0 0" xyz="${y_pos*(base_background/2-wheel_radius)}
+                                               ${-x_pos*axis_length/4}
+                                               ${wheel_radius}"/>
+            </visual>
+	        <xacro:cylinder_collision cylinder_radius="${axis_radius*2}" length="${axis_length}" mass="0.08">
+        	    <origin rpy="1.57075 0 0" xyz="${y_pos*(base_background/2-wheel_radius)}
+                                               ${-x_pos*axis_length/4}
+                                               ${wheel_radius}"/>
+            </xacro:cylinder_collision>
+        </link>
+        <joint name="axis_to_wheel_${nomi}${nomi2}" type="fixed">
+            <parent link="axis_${nomi}${nomi2}"/>
+            <child link="wheel_${nomi}${nomi2}"/>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <limit effort="60" velocity="4.18"/>
+            <dynamics damping="1" friction="0"/>
         </joint>
-        <joint name="axis_to_wheel_${nomi}2" type="fixed">
-            <parent link="axis_${nomi}"/>
-            <child link="wheel_${nomi}2"/>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+        <joint name="axis_to_axis_${nomi}${nomi2}" type="continuous">
+            <parent link="axis_base_${nomi}${nomi2}"/>
+            <child link="axis_${nomi}${nomi2}"/>
+            <origin rpy="0 0 1.57075" xyz="${y_pos*(base_background/2-wheel_radius)} 0 ${wheel_radius}"/>
+            <limit effort="60" velocity="4.18"/>
+            <dynamics damping="1" friction="0"/>
         </joint>
+    </xacro:macro>
+
+    <xacro:macro name="two_wheels" params="nomi y_pos">
+        <xacro:compound_wheel nomi="${nomi}" nomi2="1" x_pos="-1" y_pos="${y_pos}"/>
+        <xacro:compound_wheel nomi="${nomi}" nomi2="2" x_pos="1" y_pos="${y_pos}"/>
     </xacro:macro>
 
     <link name="base">
         <visual>
-            <origin xyz="0 0 ${wheel_radius+axis_radius+base_thickness/2}" rpy="0 0 0" />
+            <origin xyz="0 0 ${wheel_radius+axis_radius*2+base_thickness/2}" rpy="0 0 0" />
             <geometry>
                 <box size="${base_background} ${base_width} ${base_thickness}"/>
             </geometry>
             <material name="orange"/>
         </visual>
         <xacro:base_box background="${base_background}" width="${base_width}" high="${base_thickness}" mass="${mass_chasis}">
-            <origin xyz="0 0 ${wheel_radius+axis_radius+base_thickness/2}" rpy="0 0 0"/>
+            <origin xyz="0 0 ${wheel_radius+axis_radius*2+base_thickness/2}" rpy="0 0 0"/>
         </xacro:base_box>
     </link>
-    <xacro:two_wheels nomi="1" x_pos="-1"/>
-    <xacro:two_wheels nomi="2" x_pos="1"/>
+    <xacro:two_wheels nomi="1" y_pos="-1"/>
+    <xacro:two_wheels nomi="2" y_pos="1"/>
     <joint name="axis_to_base_1" type="fixed">
         <parent link="base"/>
-        <child link="axis_1"/>
+        <child link="axis_base_11"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
     <joint name="axis_to_base_2" type="fixed">
         <parent link="base"/>
-        <child link="axis_2"/>
+        <child link="axis_base_12"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="axis_to_base_3" type="fixed">
+        <parent link="base"/>
+        <child link="axis_base_21"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+    <joint name="axis_to_base_4" type="fixed">
+        <parent link="base"/>
+        <child link="axis_base_22"/>
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
 </robot>
